@@ -1,0 +1,6 @@
+venv/
+.idea/
+__pycache__/
+lib/__pycache__/
+*.onnx
+*.engine

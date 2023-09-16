@@ -1,0 +1,62 @@
+stages:
+  - build
+  - release
+
+include:
+  - project: 'inference/infra/cicd'
+    ref: v1.0.0
+    file: '/common/rules.yml'
+  - project: 'inference/infra/cicd'
+    ref: v1.0.0
+    file: '/common/docker.yml'
+  - project: 'inference/infra/cicd'
+    ref: v1.0.0
+    file: '/jobs/nodejs.yml'
+
+variables:
+  IMAGE_NAME: livestream-ai-worker
+
+
+.dev_environment:
+  variables:
+    ENVIRONMENT: dev
+    VERSION: ${CI_COMMIT_REF_SLUG}
+
+.stg_environment:
+  variables:
+    ENVIRONMENT: stg
+    VERSION: ${CI_COMMIT_TAG}
+
+.prod_environment:
+  variables:
+    ENVIRONMENT: prod
+    VERSION: ${CI_COMMIT_TAG}
+
+
+build-stg:
+  stage: build
+  extends:
+    - .build_and_push_image
+    - .only_dev_tags
+    - .stg_environment
+
+build-prod:
+ stage: build
+ extends:
+   - .build_and_push_image
+   - .only_prod_tags
+   - .prod_environment
+
+pre-release:
+  stage: release
+  extends:
+    - .release_npm
+    - .only_dev
+
+release:
+  stage: release
+  extends:
+    - .release_npm
+    - .only_main
+
+      
