@@ -4,15 +4,18 @@ It loads environment variables and sets them as attributes of the ConfigManager 
 It loads the detection configuration from a file and sets the attributes of the ConfigManager instance.
 """
 import os
-from lib.common import Logger
+from ..common.Logger import Logger
 from configparser import ConfigParser
+from .AmqpConfig import AmqpConfig
+
 
 class ConfigManager:
     """
     Singleton class that manages the configuration of the application.
     """
-    
+
     _instance = None
+
     def __new__(cls):
         """
         Creates a new instance of the ConfigManager class if it does not exist.
@@ -20,7 +23,7 @@ class ConfigManager:
         if not cls._instance:
             # Initialize the class instance
             cls._instance = super(ConfigManager, cls).__new__(cls)
-            
+
             # Put any initialization here.
             cls.__service_name = None
             cls.__version = None
@@ -35,10 +38,20 @@ class ConfigManager:
             # Load configs
             cls._instance._load_environment()
             cls._instance._init_logger()
-            cls._instance._load_detection_config()
+            cls.__amqp_config = AmqpConfig()
+
+            # cls._instance._load_detection_config()
             # End of loading configs
 
-            cls._instance.__logger.debug("ConfigManager init completed", service_config=cls.__service_config)
+            cls._instance.__logger.debug("ConfigManager init completed",
+                                         service_name=cls._instance.__service_name,
+                                         version=cls._instance.__version,
+                                         metrics_port=cls._instance.__metrics_port,
+                                         log_level=cls._instance.__log_level,
+                                         env=cls._instance.__env,
+                                         detection_config_file_path=cls._instance.__detection_config_file_path,
+                                         segmentation_config_file_path=cls._instance.__segmentation_config_file_path
+                                         )
         return cls._instance
 
     def _load_environment(self):
@@ -48,20 +61,19 @@ class ConfigManager:
         self.__service_name = os.getenv("APP_NAME", "livestream-ai-worker")
         self.__version = os.getenv("VERSION", "dev-version")
         self.__metrics_port = os.getenv("METRICS_PORT", 8000)
-        self.__log_level = os.getenv("LOG_LEVEL", "info")
+        self.__log_level = os.getenv("LOG_LEVEL", "debug")
         self.__env = os.getenv("ENVIRONMENT", "dev")
-        self.__detection_config_file_path = os.getenv("DETECTION_CONFIG_FILE_PATH", "configs/detection_nvinfer.txt")
-        self.__segmentation_config_file_path = os.getenv("SEGMENTATION_CONFIG_FILE_PATH", "configs/segmentation_nvinfer.txt")
+        self.__detection_config_file_path = os.getenv(
+            "DETECTION_CONFIG_FILE_PATH", "configs/detection_nvinfer.txt")
+        self.__segmentation_config_file_path = os.getenv(
+            "SEGMENTATION_CONFIG_FILE_PATH", "configs/segmentation_nvinfer.txt")
 
     def _init_logger(self):
         """
         Initializes the logger with the attributes of the ConfigManager instance.
         """
-        self.__logger = Logger(
-            log_level=self.get_logger_level(),
-            app_name=self.get_app_name(),
-            app_version=self.get_app_version(),
-            environment=self.get_environment()
+        self.__logger = Logger().init(
+            log_level=self.__log_level, app_name=self.__service_name, app_version=self.__version, environment=self.__env
         ).get_logger()
 
     def _load_detection_config(self):
@@ -71,7 +83,8 @@ class ConfigManager:
         parser = ConfigParser()
         parser.read(self.__detection_config_file_path)
 
-        config_parent_dir = os.path.abspath(os.path.dirname(self.__detection_config_file_path))
+        config_parent_dir = os.path.abspath(
+            os.path.dirname(self.__detection_config_file_path))
 
         self.__logger.debug("Loaded detection config from file: {}".format(parser.sections()),
                             property=parser["property"], attr=parser["class-attrs-all"])
@@ -84,11 +97,13 @@ class ConfigManager:
         # overriding properties
         gpu_id = os.getenv("GPU_ID", "0")
         parser["property"]["gpu-id"] = gpu_id
-        self.__logger.debug("Overriding detection config property: gpu-id", gpu_id=gpu_id)
+        self.__logger.debug(
+            "Overriding detection config property: gpu-id", gpu_id=gpu_id)
 
         self.__logger.debug("Checking onnx file")
         if "onnx-file" not in parser["property"]:
-            raise ValueError("onnx-file value not found config file: {}".format(self.__detection_config_file_path))
+            raise ValueError(
+                "onnx-file value not found config file: {}".format(self.__detection_config_file_path))
 
         # check if onnx file exists
         onnx_file = parser["property"]["onnx-file"]
@@ -96,16 +111,19 @@ class ConfigManager:
             raise ValueError("Onnx file not found: {}".format(onnx_file))
 
         # set engine file path
-        engine_file_name = "model_b{}_gpu{}_fp32.engine".format(len(self.__input_rtsp_streams), gpu_id)
+        engine_file_name = "model_b{}_gpu{}_fp32.engine".format(
+            len(self.__input_rtsp_streams), gpu_id)
         engine_file = "{}/{}".format(os.getcwd(), engine_file_name)
         parser["property"]["model-engine-file"] = engine_file
         self.__logger.debug("Overriding detection config property: model-engine-file",
                             engine_file_name=engine_file_name)
         if not os.path.exists(engine_file):
-            self.__logger.warning("Engine file not found: {}! It will be generated by nvinfer".format(engine_file))
+            self.__logger.warning(
+                "Engine file not found: {}! It will be generated by nvinfer".format(engine_file))
 
         # set batch size
-        parser["property"]["batch-size"] = str(len(list(filter(lambda x: x.enabled, self.__input_rtsp_streams))))
+        parser["property"]["batch-size"] = str(
+            len(list(filter(lambda x: x.enabled, self.__input_rtsp_streams))))
         self.__logger.debug("Overriding detection config property: batch-size",
                             batch_size=len(self.__input_rtsp_streams))
 
@@ -121,8 +139,8 @@ class ConfigManager:
         # write config file
         with open(self.__detection_config_file_path, "w") as f:
             parser.write(f)
-        self.__logger.debug("Wrote detection config to file: {}".format(self.__detection_config_file_path))
-
+        self.__logger.debug("Wrote detection config to file: {}".format(
+            self.__detection_config_file_path))
 
     def get_logger_level(self):
         """
@@ -141,7 +159,7 @@ class ConfigManager:
         Returns the app name attribute of the ConfigManager instance.
         """
         return self.__service_name
-    
+
     def get_environment(self):
         """
         Returns the environment attribute of the ConfigManager instance.
@@ -159,9 +177,15 @@ class ConfigManager:
         Returns the detection config file path attribute of the ConfigManager instance.
         """
         return self.__detection_config_file_path
-    
+
     def get_segmentation_config_file_path(self):
         """
         Returns the segmentation config file path attribute of the ConfigManager instance.
         """
         return self.__segmentation_config_file_path
+
+    def get_amqp_config(self):
+        """
+        Returns the AMQP config attribute of the ConfigManager instance.
+        """
+        return self.__amqp_config

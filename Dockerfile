@@ -1,4 +1,3 @@
-# ARG BASE_IMAGE=nvcr.io/nvidia/deepstream-l4t:6.2-devel
 ARG BASE_IMAGE=nvcr.io/nvidia/deepstream:6.2-devel
 FROM ${BASE_IMAGE}
 ARG GL_TOKEN
@@ -36,15 +35,8 @@ RUN git clone https://github.com/NVIDIA-AI-IOT/deepstream_python_apps.git
 RUN mkdir /opt/nvidia/deepstream/deepstream/sources/deepstream_python_apps/bindings/build
 WORKDIR /opt/nvidia/deepstream/deepstream/sources/deepstream_python_apps/bindings/build
 
-RUN /bin/bash -c 'set -ex && \
-        ARCH=`uname -m` && \
-        if [ "$ARCH" == "x86_64" ]; then \
-           curl -O -L https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/releases/download/v1.1.6/pyds-1.1.6-py3-none-linux_x86_64.whl && \
-           pip3 install ./pyds-1.1.6-py3-none-linux_x86_64.whl; \
-        else \
-           curl -O -L https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/releases/download/v1.1.6/pyds-1.1.6-py3-none-linux_aarch64.whl && \
-           pip3 install ./pyds-1.1.6-py3-none-linux_aarch64.whl; \
-        fi'
+RUN curl -O -L https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/releases/download/v1.1.6/pyds-1.1.6-py3-none-linux_x86_64.whl && \
+    pip3 install ./pyds-1.1.6-py3-none-linux_x86_64.whl;
 
 ENV CUDA_VER 11.8
 
