@@ -60,7 +60,9 @@ RUN cd gst-nvmaxine && \
     cd build && \
     cmake .. && \
     cmake --build . --config Release && \
-    cmake --install . --config Release
+    cmake --install . --config Release && \
+    cd ../../ && \
+    rm -rf gst-nvmaxine
 
 ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/local/VideoFX/lib"
 
