@@ -2,7 +2,7 @@ ARG BASE_IMAGE=nvcr.io/nvidia/deepstream:6.2-devel
 FROM ${BASE_IMAGE}
 ARG GL_TOKEN
 ARG ENVIRONMENT
-
+ARG MAXINE_VIDEO_SDK
 ENV ENVIRONMENT=$ENVIRONMENT
 ENV DEBIAN_FRONTEND noninteractive
 
@@ -48,11 +48,26 @@ RUN cd DeepStream-Yolo/nvdsinfer_custom_impl_Yolo/ && \
     cp libnvdsinfer_custom_impl_Yolo.so /usr/local/lib/libnvdsinfer_yolo_v8.so  && \
     cd ../ && rm -rf DeepStream-Yolo
 
+COPY $MAXINE_VIDEO_SDK /tmp/video_fx.tar.gz
+
+RUN tar -xvf /tmp/video_fx.tar.gz -C /usr/local && \
+    rm -rf /tmp/video_fx.tar.gz
+
+RUN git clone https://github.com/voidmainvoid95/gst-nvmaxine.git
+
+RUN cd gst-nvmaxine && \
+    mkdir build && \
+    cd build && \
+    cmake .. && \
+    cmake --build . --config Release && \
+    cmake --install . --config Release
+
+ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/local/VideoFX/lib"
+
 COPY . /opt/app
 
 WORKDIR /opt/app
 
 RUN pip install -r requirements.txt --extra-index-url https://__token__:$GL_TOKEN@gitlab.com/api/v4/groups/park-smart/-/packages/pypi/simple
-
 
 CMD ["/usr/bin/python3", "app.py"]
