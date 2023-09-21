@@ -5,36 +5,62 @@ from lib.processing.gstreamer.elements.GstBaseElement import GstBaseElement
 
 
 class GstBaseSrc(GstBaseElement):
-    __logger = None
-    _src_video_tee = None
-    _src_audio_tee = None
+    """
+    Base class for GStreamer source elements.
 
-    def __init__(self, pipeline, elem_id=0):
+    Attributes:
+    - __logger: Logger object for logging messages.
+    - __on_video_available: Callback function to be called when video is available.
+    - __on_audio_available: Callback function to be called when audio is available.
+
+    Methods:
+    - __init__(self, pipeline, elem_id=0, on_video_available=None, on_audio_available=None): Constructor for GstBaseSrc class.
+    - build_source(self): Abstract method to build the source element.
+    - on_video_available(self): Getter method for on_video_available callback function.
+    - on_audio_available(self): Getter method for on_audio_available callback function.
+    """
+
+    __logger = None
+
+    __on_video_available = None
+    __on_audio_available = None
+
+    def __init__(self, pipeline, elem_id=0, on_video_available=None, on_audio_available=None):
+        """
+        Constructor for GstBaseSrc class.
+
+        Args:
+        - pipeline: GStreamer pipeline object.
+        - elem_id: ID of the element.
+        - on_video_available: Callback function to be called when video is available.
+        - on_audio_available: Callback function to be called when audio is available.
+        """
         super().__init__(pipeline, elem_id)
         self.__logger = Logger().get_logger("GstBaseSrc")
-        self.__create_src_video_tee()
-        self.__create_src_audio_tee()
+        self.__logger.debug("GstBaseSrc init started")
+        assert on_video_available is not None or on_audio_available is not None, "At least one callback must be provided"
 
-    def __create_src_video_tee(self):
-        elem_name = "src-video-tee-%u" % self._elem_id
-        self.__logger.debug("Creating video tee {} for source {}".format(elem_name, self._elem_id))
-        self._src_video_tee = make_gst_element("tee", elem_name, elem_name)
-        self._pipeline.add(self._src_video_tee)
-        self.__logger.debug("Video tee {} created for source {}".format(elem_name, self._elem_id))
-
-    def __create_src_audio_tee(self):
-        elem_name = "src-audio-tee-%u" % self._elem_id
-        self.__logger.debug("Creating audio tee {} for source {}".format(elem_name, self._elem_id))
-        self._src_audio_tee = make_gst_element("tee", elem_name, elem_name)
-        self._pipeline.add(self._src_audio_tee)
-        self.__logger.debug("Audio tee {} created for source {}".format(elem_name, self._elem_id))
-
-    def get_src_video_tee(self):
-        return self._src_video_tee
-
-    def get_src_audio_tee(self):
-        return self._src_audio_tee
+        self.__on_video_available = on_video_available
+        self.__on_audio_available = on_audio_available
+        self.__logger.debug("GstBaseSrc init completed")
 
     @abstractmethod
     def build_source(self):
+        """
+        Abstract method to build the source element.
+        """
         pass
+
+    @property
+    def _on_video_available(self):
+        """
+        Getter method for on_video_available callback function.
+        """
+        return self.__on_video_available
+
+    @property
+    def _on_audio_available(self):
+        """
+        Getter method for on_audio_available callback function.
+        """
+        return self.__on_audio_available

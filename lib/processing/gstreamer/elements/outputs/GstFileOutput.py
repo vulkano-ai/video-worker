@@ -31,35 +31,39 @@ class GstFileOutput(GstBaseSink):
 
     def __create_queue(self):
         self.__logger.debug("Creating queue")
-        self.__queue = make_gst_element("queue", "queue-file_%u"%self._elem_id, "queue-file_%u"%self._elem_id)
-        self._pipeline.add(self.__queue)
+        self.__queue = make_gst_element(
+            "queue", "queue-file_%u" % self._elem_id, "queue-file_%u" % self._elem_id)
+        self.get_pipeline().add(self.__queue)
         self.__logger.debug("Queue created")
-
 
     def __create_encode(self):
         self.__logger.debug("Creating encode")
-        self.__encode = make_gst_element("nvv4l2h264enc", "nvv4l2h264enc_%u"%self._elem_id, "nvv4l2h264enc_%u"%self._elem_id)
+        self.__encode = make_gst_element(
+            "nvv4l2h264enc", "nvv4l2h264enc_%u" % self._elem_id, "nvv4l2h264enc_%u" % self._elem_id)
         # self.__encode.set_property("bitrate", 4000000)
-        self._pipeline.add(self.__encode)
+        self.get_pipeline().add(self.__encode)
         self.__logger.debug("Encode created")
 
     def __create_parse(self):
         self.__logger.debug("Creating parse")
-        self.__parse = make_gst_element("h264parse", "h264parse_output_%u"%self._elem_id, "h264parse_output_%u"%self._elem_id)
-        self._pipeline.add(self.__parse)
+        self.__parse = make_gst_element(
+            "h264parse", "h264parse_output_%u" % self._elem_id, "h264parse_output_%u" % self._elem_id)
+        self.get_pipeline().add(self.__parse)
         self.__logger.debug("Parse created")
 
     def __create_mux(self):
         self.__logger.debug("Creating mux")
-        self.__mux = make_gst_element("matroskamux", "matroskamux_%u"%self._elem_id, "matroskamux_%u"%self._elem_id)
-        self._pipeline.add(self.__mux)
+        self.__mux = make_gst_element(
+            "matroskamux", "matroskamux_%u" % self._elem_id, "matroskamux_%u" % self._elem_id)
+        self.get_pipeline().add(self.__mux)
         self.__logger.debug("Mux created")
 
     def __create_file_sink(self):
         self.__logger.debug("Creating file sink")
-        self.__file_sink = make_gst_element("filesink", "filesink_%u"%self._elem_id, "filesink_%u"%self._elem_id)
+        self.__file_sink = make_gst_element(
+            "filesink", "filesink_%u" % self._elem_id, "filesink_%u" % self._elem_id)
         self.__file_sink.set_property("location", self.__file_path)
-        self._pipeline.add(self.__file_sink)
+        self.get_pipeline().add(self.__file_sink)
         self.__logger.debug("File sink created")
 
     def build_output(self):

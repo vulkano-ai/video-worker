@@ -4,6 +4,7 @@ from gi.repository import Gst
 from abc import abstractmethod
 from lib.processing.gstreamer.elements.GstBaseElement import GstBaseElement
 
+
 class GstBaseVideoInfer(GstBaseElement):
     __logger = None
     _src_video_tees = []
@@ -21,9 +22,10 @@ class GstBaseVideoInfer(GstBaseElement):
         self.__logger.debug("Base video infer element created")
 
     def _create_out_tee(self, idx):
-        tee_out = make_gst_element("tee", "tee_pgie_video_out_%u" % idx, "tee_pgie_video_out_%u" % idx)
+        tee_out = make_gst_element(
+            "tee", "tee_pgie_video_out_%u" % idx, "tee_pgie_video_out_%u" % idx)
 
-        self._pipeline.add(tee_out)
+        self.get_pipeline().add(tee_out)
         self._out_video_tees.append(tee_out)
 
     def get_out_video_tees(self):

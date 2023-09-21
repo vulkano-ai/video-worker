@@ -38,8 +38,6 @@ WORKDIR /opt/nvidia/deepstream/deepstream/sources/deepstream_python_apps/binding
 RUN curl -O -L https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/releases/download/v1.1.6/pyds-1.1.6-py3-none-linux_x86_64.whl && \
     pip3 install ./pyds-1.1.6-py3-none-linux_x86_64.whl;
 
-ENV CUDA_VER 11.8
-
 # nvdsinfer_custom_impl_Yolo
 WORKDIR /tmp
 

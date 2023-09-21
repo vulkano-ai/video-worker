@@ -1,17 +1,37 @@
 from lib import Logger
-from lib.processing.gstreamer.utils.gst_utils import make_gst_element
-from gi.repository import Gst
-from abc import abstractmethod
 
 
 class GstBaseElement(object):
+    """
+    Base class for GStreamer elements.
+    """
     __logger = None
-    _pipeline = None
-    _elem_id = None
+    __pipeline = None
+    __elem_id = None
 
     def __init__(self, pipeline, elem_id=0):
+        """
+        Constructor for GstBaseElement.
+
+        Args:
+        - pipeline: GStreamer pipeline object.
+        - elem_id: ID of the element.
+        """
         super().__init__()
-        self.__logger = Logger().get_logger("GstElementSink")
+        self.__logger = Logger().get_logger("GstElement")
         self.__logger.debug("Creating Base element")
-        self._pipeline = pipeline
-        self._elem_id = elem_id
+        self.__pipeline = pipeline
+        self.__elem_id = elem_id
+        self.__logger.debug("Base element created")
+
+    def get_pipeline(self):
+        """
+        Getter method for pipeline.
+        """
+        return self.__pipeline
+
+    def get_element_id(self):
+        """
+        Getter method for element ID.
+        """
+        return self.__elem_id

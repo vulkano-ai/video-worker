@@ -7,6 +7,8 @@ from .GstBaseVideoInfer import GstBaseVideoInfer
 from edge.detector.detector_pb2 import DetectionOutput, ObjMeta, ClassifierMeta, LabelInfo
 from google.protobuf.timestamp_pb2 import Timestamp
 from datetime import datetime
+
+
 class DetectionInfer(GstBaseVideoInfer):
     __muxer_output_width = 1920
     __muxer_output_height = 1080
@@ -21,37 +23,40 @@ class DetectionInfer(GstBaseVideoInfer):
     __streams = []
 
     # PGIE config file path
-    __confing_infer_primary_path__ = os.path.abspath("./configs/config_infer_primary.txt")
+    __confing_infer_primary_path__ = os.path.abspath(
+        "./configs/config_infer_primary.txt")
 
     def __init__(self, pipeline, elem_id, src_video_tees, streams, gie="nvinfer", live_source=1):
         super().__init__(pipeline=pipeline, elem_id=elem_id, src_video_tees=src_video_tees)
         self.__logger = Logger().get_logger("DetectionInfer")
         self.__gie = gie
         self.__live_source = live_source
-        self.__streams= streams
-
+        self.__streams = streams
 
     def __create_muxer(self):
         self.__logger.debug("Creating muxer")
-        self.__muxer = make_gst_element("nvstreammux", "nvstreammux", "nvstreammux")
+        self.__muxer = make_gst_element(
+            "nvstreammux", "nvstreammux", "nvstreammux")
 
-        self._pipeline.add(self.__muxer)
-        #Default is live stream
+        self.get_pipeline().add(self.__muxer)
+        # Default is live stream
         self.__muxer.set_property('live-source', self.__live_source)
 
-        #Set muxer properties
+        # Set muxer properties
         self.__logger.debug('Setting muxer properties')
         self.__muxer.set_property("width", self.__muxer_output_width)
         self.__muxer.set_property("height", self.__muxer_output_height)
         self.__muxer.set_property("batch-size", self.__muxer_batch_size)
-        self.__muxer.set_property("batched-push-timeout", self.__muxer_batch_timeout_usec)
+        self.__muxer.set_property(
+            "batched-push-timeout", self.__muxer_batch_timeout_usec)
         self.__muxer.set_property("gpu_id", self.__gpu_id)
 
         self.__logger.debug("Muxer created")
 
     def __configure_pgie(self):
         self.__pgie = make_gst_element('nvinfer', 'nvinfer', 'nvinfer')
-        self.__pgie.set_property("config-file-path", self.__confing_infer_primary_path__)
+        self.__pgie.set_property(
+            "config-file-path", self.__confing_infer_primary_path__)
 
         # Manage Batch size
         pgie_batch_size = self.__pgie.get_property("batch-size")
@@ -62,7 +67,7 @@ class DetectionInfer(GstBaseVideoInfer):
             pgie_batch_size = self.__num_sources
         self.__pgie.set_property("batch-size", pgie_batch_size)
 
-        self._pipeline.add(self.__pgie)
+        self.get_pipeline().add(self.__pgie)
 
         pgiesrcpad = self.__pgie.get_static_pad("src")
         if not pgiesrcpad:
@@ -70,7 +75,6 @@ class DetectionInfer(GstBaseVideoInfer):
             raise TypeError("Unable to get src pad of primary infer")
 
         pgiesrcpad.add_probe(Gst.PadProbeType.BUFFER, self.__on_pgie_data, 0)
-
 
     def __on_pgie_data(self, pad, info, u_data):
         gst_buffer = info.get_buffer()
@@ -112,9 +116,10 @@ class DetectionInfer(GstBaseVideoInfer):
                 seconds = int(t)
                 nanos = int(t % 1 * 1e9)
                 output_detection.timestamp.seconds = seconds
-                output_detection.timestamp.nanos=nanos
+                output_detection.timestamp.nanos = nanos
 
-                output_detection.metadata.CopyFrom(self.__streams[frame_meta.batch_id].metadata)
+                output_detection.metadata.CopyFrom(
+                    self.__streams[frame_meta.batch_id].metadata)
 
                 while l_obj is not None:
                     try:
@@ -154,9 +159,11 @@ class DetectionInfer(GstBaseVideoInfer):
                                         label_info_proto.label_id = label_info.label_id
                                         label_info_proto.result_prob = label_info.result_prob
 
-                                        classifier_meta_proto.label_info.append(label_info_proto)
+                                        classifier_meta_proto.label_info.append(
+                                            label_info_proto)
 
-                                output_detection.obj_meta.classifier_meta_list.append(classifier_meta_proto)
+                                output_detection.obj_meta.classifier_meta_list.append(
+                                    classifier_meta_proto)
 
                     except StopIteration:
                         break
@@ -164,7 +171,8 @@ class DetectionInfer(GstBaseVideoInfer):
                         l_obj = l_obj.next
                     except StopIteration:
                         break
-                self.__logger.info("output_detection", output_detection=output_detection)
+                self.__logger.info("output_detection",
+                                   output_detection=output_detection)
             try:
                 l_frame = l_frame.next
             except StopIteration:
@@ -174,13 +182,14 @@ class DetectionInfer(GstBaseVideoInfer):
 
     def __create_demuxer(self):
         self.__logger.debug("Creating Demuxer")
-        self.__demuxer = make_gst_element("nvstreamdemux", "nvstreamdemux", "nvstreamdemux")
-        self._pipeline.add(self.__demuxer)
-
+        self.__demuxer = make_gst_element(
+            "nvstreamdemux", "nvstreamdemux", "nvstreamdemux")
+        self.get_pipeline().add(self.__demuxer)
 
     def __create_queue(self, idx):
-        queue = make_gst_element('queue', "queue_tee_%u" % idx, "queue_tee_%u" % idx)
-        self._pipeline.add(queue)
+        queue = make_gst_element('queue', "queue_tee_%u" %
+                                 idx, "queue_tee_%u" % idx)
+        self.get_pipeline().add(queue)
         return queue
 
     def __link_input_tee(self, idx):

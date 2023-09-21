@@ -4,6 +4,7 @@ from pika import BlockingConnection, ConnectionParameters, PlainCredentials
 import logging
 import functools
 import inference.pipeline.pipeline_pb2 as Pipeline
+from queue import Queue
 
 
 class AmqpThread(Thread):
@@ -15,6 +16,7 @@ class AmqpThread(Thread):
         __channel (BlockingConnection.channel): The AMQP channel object.
         __config (dict): The AMQP configuration dictionary.
         __logger (Logger): The logger object for logging AMQP thread events.
+        __internal_queue (Queue): The queue object for storing AMQP messages.
         __close_event (Event): The event object for stopping the AMQP thread.
 
     Args:
@@ -26,13 +28,16 @@ class AmqpThread(Thread):
     __channel = None
     __config = None
     __logger = None
+    __internal_queue = None
+    __close_event = None
 
-    def __init__(self, context=None, default_sleep=1):
+    def __init__(self, queue: Queue = None, default_sleep=1):
         super(AmqpThread, self).__init__()
         self.__logger = Logger().get_logger("AMQP thread")
         self.__logger.debug("AMQP thread init", default_sleep=default_sleep)
         self.__config = ConfigManager().get_amqp_config()
         self.__close_event = Event()
+        self.__internal_queue = queue
         self.__logger.debug("AMQP thread init completed")
         logging.getLogger("pika").setLevel(logging.WARNING)
 
@@ -153,3 +158,5 @@ class AmqpThread(Thread):
         self.__logger.debug("AMQP message properties", properties=properties)
         self.__logger.debug("AMQP message method", method=method)
         self.__logger.debug("AMQP message channel", channel=channel)
+
+        self.__internal_queue.put(pipeline_request)

@@ -1,18 +1,48 @@
 from signal import signal, SIGTERM, SIGINT
 from threading import Event
-from lib import Logger, ConfigManager, GstWorker, AmqpWorker
+from lib import Logger, ConfigManager, AmqpWorker, PipelineWorker
 from prometheus_client import start_http_server as start_prometheus_server
+import queue
+
+
+import queue
+from threading import Event
 
 
 class LivestreamAiService:
+    """
+    A class representing the Livestream AI service.
+
+    Attributes:
+    __health_check_worker: None
+    __pipeline_worker: None
+    __amqp_worker: None
+    __close_event: threading.Event
+    __logger: logging.Logger
+    __job_queue: queue.Queue
+
+    Methods:
+    main: The main method of the service.
+    start_workers: Starts the workers.
+    stop_workers: Stops the workers.
+    quit: Quits the service.
+    """
+
     def __init__(self):
+        """
+        Initializes the LivestreamAiService class.
+        """
         self.__health_check_worker = None
-        self.__gst_worker = None
+        self.__pipeline_worker = None
         self.__amqp_worker = None
         self.__close_event = Event()
         self.__logger = Logger().get_logger("Main thread")
+        self.__job_queue = queue.Queue()
 
     def main(self):
+        """
+        The main method of the service.
+        """
         self.__logger.info("Creating workers")
         self.start_workers()
         self.__logger.info("Workers created, waiting tread join")
@@ -29,26 +59,42 @@ class LivestreamAiService:
                 self.__logger.info("After wait")
 
     def start_workers(self):
-        self.__gst_worker = GstWorker.GstThread()
-        self.__gst_worker.start()
+        """
+        Starts the workers.
+        """
+        self.__pipeline_worker = PipelineWorker.PipelineThread(
+            queue=self.__job_queue)
+        self.__pipeline_worker.start()
 
         self.__amqp_worker = AmqpWorker.AmqpThread()
         self.__amqp_worker.start()
         return
 
     def stop_workers(self):
+        """
+        Stops the workers.
+        """
         self.__logger.info("Stopping workers")
-        if self.__gst_worker is not None and self.__gst_worker.is_alive():
-            self.__gst_worker.stop()
-            self.__gst_worker.join()
-            self.__logger.info("Gst worker closed")
+        # Amqp worker
         if self.__amqp_worker is not None and self.__amqp_worker.is_alive():
             self.__amqp_worker.stop()
             self.__amqp_worker.join()
             self.__logger.info("Amqp worker closed")
+
+        # Queue
+        self.__job_queue.join()
+
+        # Pipeline worker
+        if self.__pipeline_worker is not None and self.__pipeline_worker.is_alive():
+            self.__pipeline_worker.stop()
+            self.__pipeline_worker.join()
+            self.__logger.info("Pipeline worker closed")
         return
 
     def quit(self):
+        """
+        Quits the service.
+        """
         self.__logger.info("Closing...")
         self.__close_event.set()
         self.stop_workers()
