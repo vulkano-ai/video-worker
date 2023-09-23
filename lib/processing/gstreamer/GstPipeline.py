@@ -1,5 +1,5 @@
 from lib.processing.gstreamer.GstPipelineRunner import GstPipelineRunner
-from inference.pipeline import pipeline_pb2 as Pipeline
+from inference.pipeline.pipeline_pb2 import Pipeline, PipelineInput, PipelineOutput
 from lib.processing.gstreamer.elements.inputs.GstRtmpSrc import GstRtmpSrc
 from lib.common.Logger import Logger
 
@@ -15,7 +15,7 @@ class GstPipeline(GstPipelineRunner):
             eos_callback=self.__on_eos,
             state_change_callback=self.__on_state_change
         )
-        self.__logger = Logger().get_logger("GstPipelineFactory")
+        self.__logger = Logger().get_logger("GstPipeline")
 
     def __on_error(self, bus, message):
         pass
@@ -37,6 +37,10 @@ class GstPipeline(GstPipelineRunner):
         pass
 
     def _create_input_source(self, pipeline: Pipeline):
+        inputs = pipeline.input
+        
+        
+        
         if pipeline.input.source.type == Pipeline.Input.Source.RTMP:
             self.__source = GstRtmpSrc(
                 pipeline=pipeline,

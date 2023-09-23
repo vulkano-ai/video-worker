@@ -24,14 +24,16 @@ class GstBaseElement(object):
         self.__elem_id = elem_id
         self.__logger.debug("Base element created")
 
-    def get_pipeline(self):
+    @property
+    def pipeline(self):
         """
         Getter method for pipeline.
         """
         return self.__pipeline
 
-    def get_element_id(self):
+    @property
+    def elem_id(self):
         """
-        Getter method for element ID.
+        Getter method for elem_id.
         """
         return self.__elem_id

@@ -6,7 +6,7 @@ from lib import Logger
 
 class GstPipelineRunner(object):
     """
-    A class representing a GStreamer pipeline.
+    A class representing a GStreamer pipeline runner. It allows to run a GStreamer pipeline in a blocking manner.
 
     Attributes:
         __mainloop (GLib.MainLoop): The main loop of the pipeline.
@@ -38,14 +38,14 @@ class GstPipelineRunner(object):
 
     def __init__(self, error_callback=None, eos_callback=None, state_change_callback=None):
         """
-        Initializes the pipeline.
+        Initializes the pipeline runner.
 
         Args:
             error_callback (function): The function to be called when an error occurs.
             eos_callback (function): The function to be called when the end of the stream is reached.
             state_change_callback (function): The function to be called when the state of the pipeline changes.
         """
-        self.__logger = Logger().get_logger("GstPipeline")
+        self.__logger = Logger().get_logger("GstPipelineRunner")
         self.__mainloop = None
         self.__pipeline = None
         self.error_callback = error_callback or self.quit

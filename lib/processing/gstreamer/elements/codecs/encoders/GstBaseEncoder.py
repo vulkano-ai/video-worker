@@ -2,6 +2,7 @@ from lib import Logger
 from lib.processing.gstreamer.elements.GstBaseElement import GstBaseElement
 
 
+
 class GstBaseEncoder(GstBaseElement):
     __logger = None
     __name = None

@@ -1,1 +1,1 @@
-from .video import GstH264Decoder
+from .video import GstAvDecoder
