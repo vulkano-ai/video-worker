@@ -19,8 +19,8 @@ RUN apt install -y libgstreamer1.0-dev libgstreamer-plugins-base1.0-dev libgstre
     gstreamer1.0-libav gstreamer1.0-doc gstreamer1.0-tools gstreamer1.0-x gstreamer1.0-alsa gstreamer1.0-gl \
     gstreamer1.0-gtk3 gstreamer1.0-qt5 gstreamer1.0-pulseaudio
 
-# Gst RTSP Server
-RUN apt install -y libgstrtspserver-1.0-dev gstreamer1.0-rtsp
+# # Gst RTSP Server
+# RUN apt install -y libgstrtspserver-1.0-dev gstreamer1.0-rtsp
 
 # Deepstream Dependencies
 RUN apt install -y python3-gi python3-dev python3-gst-1.0 python-gi-dev git python-dev \

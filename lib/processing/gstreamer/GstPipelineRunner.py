@@ -33,7 +33,7 @@ class GstPipelineRunner(object):
         build_pipeline(self): Abstract method for building the pipeline.
     """
     __mainloop = None
-    __pipeline = None
+    __gst_pipeline = None
     __logger = None
 
     def __init__(self, error_callback=None, eos_callback=None, state_change_callback=None):
@@ -47,7 +47,7 @@ class GstPipelineRunner(object):
         """
         self.__logger = Logger().get_logger("GstPipelineRunner")
         self.__mainloop = None
-        self.__pipeline = None
+        self.__gst_pipeline = None
         self.error_callback = error_callback or self.quit
         self.eos_callback = eos_callback or self.quit
         self.state_change_callback = state_change_callback
@@ -68,8 +68,8 @@ class GstPipelineRunner(object):
         Initializes the pipeline.
         """
         self.__logger.debug("Creation pipeline")
-        self.__pipeline = Gst.Pipeline()
-        if not self.__pipeline:
+        self.__gst_pipeline = Gst.Pipeline()
+        if not self.__gst_pipeline:
             raise ValueError(" Unable to create Pipeline \n")
 
     def __configure_signals(self):
@@ -77,7 +77,7 @@ class GstPipelineRunner(object):
         Configures the signals for the pipeline.
         """
         self.__logger.debug('configuring pipeline')
-        bus = self.__pipeline.bus
+        bus = self.__gst_pipeline.bus
 
         bus.add_signal_watch()
         bus.connect("message::eos", self.on_eos)
@@ -92,7 +92,7 @@ class GstPipelineRunner(object):
             element (Gst.Element): The element to be added to the pipeline.
         """
         self.__logger.debug("Adding element {}".format(element.get_name()))
-        self.__pipeline.add(element)
+        self.__gst_pipeline.add(element)
 
     def run_blocking(self):
         """
@@ -162,7 +162,7 @@ class GstPipelineRunner(object):
             message (Gst.Message): The message object.
         """
         old_state, new_state, pending = message.parse_state_changed()
-        if message.src == self.__pipeline:
+        if message.src == self.__gst_pipeline:
             self.__logger.info("Pipeline: State-Change from %s to %s; pending %s",
                                old_state.value_name, new_state.value_name, pending.value_name)
         else:
@@ -177,14 +177,14 @@ class GstPipelineRunner(object):
         Sets the pipeline state to PLAYING.
         """
         self.__logger.info('requesting state-change to PLAYING')
-        self.__pipeline.set_state(Gst.State.PLAYING)
+        self.__gst_pipeline.set_state(Gst.State.PLAYING)
 
     def set_null(self):
         """
         Sets the pipeline state to NULL.
         """
         self.__logger.info('requesting state-change to NULL')
-        self.__pipeline.set_state(Gst.State.NULL)
+        self.__gst_pipeline.set_state(Gst.State.NULL)
 
     @abstractmethod
     def build_pipeline(self):
@@ -194,11 +194,11 @@ class GstPipelineRunner(object):
         pass
 
     @property
-    def pipeline(self):
+    def gst_pipeline(self):
         """
         Returns the pipeline object.
 
         Returns:
             Gst.Pipeline: The pipeline object.
         """
-        return self.__pipeline
+        return self.__gst_pipeline
