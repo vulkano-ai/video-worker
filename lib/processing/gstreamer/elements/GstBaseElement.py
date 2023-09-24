@@ -8,6 +8,7 @@ class GstBaseElement(object):
     __logger = None
     __pipeline = None
     __elem_id = None
+    __gst_plugin_name = None
 
     def __init__(self, pipeline, elem_id=0):
         """
@@ -37,3 +38,10 @@ class GstBaseElement(object):
         Getter method for elem_id.
         """
         return self.__elem_id
+
+    @property
+    def gst_plugin_name(self):
+        """
+        Getter method for gst_plugin_name.
+        """
+        return self.__gst_plugin_name

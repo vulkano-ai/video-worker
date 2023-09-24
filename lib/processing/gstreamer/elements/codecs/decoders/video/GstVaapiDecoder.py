@@ -22,9 +22,10 @@ from lib.processing.gstreamer.utils.gst_utils import make_gst_element
 
 
 class VaapiDeinterlaceMethod(object):
-    AUTO = 0 # Auto detection
-    INTERLACED = 1 # Force interlaced
-    DISABLED = 2 # Never deinterlace
+    AUTO = 0  # Auto detection
+    INTERLACED = 1  # Force interlaced
+    DISABLED = 2  # Never deinterlace
+
 
 class GstVaapiDecoder(GstBaseDecoder):
 
@@ -34,15 +35,17 @@ class GstVaapiDecoder(GstBaseDecoder):
     __disable_vpp = None
     __output_tee = None
     __supported_encodings = [
-        VideoEncodings.H264, 
-        VideoEncodings.H265, 
-        VideoEncodings.JPEG, 
-        VideoEncodings.MJPEG, 
-        VideoEncodings.MPEG2, 
-        VideoEncodings.MPEG4,
+        VideoEncodings.H264,
+        VideoEncodings.H265,
         VideoEncodings.VP8,
         VideoEncodings.VP9
+        # VideoEncodings.JPEG,
+        # VideoEncodings.MJPEG,
+        # VideoEncodings.MPEG2,
+        # VideoEncodings.MPEG4,
     ]
+    __gst_plugin_name = 'vaapi'
+    __gst_feature_name = 'vaapidecode'
 
     def __init__(self, pipeline=None, elem_id=0):
         super().__init__(
@@ -53,7 +56,7 @@ class GstVaapiDecoder(GstBaseDecoder):
             supported_encodings=self.__supported_encodings
         )
         self.__logger = Logger().get_logger("GstVaapiDecoder")
-    
+
     def init_decoder(self, deinterlace_mode: VaapiDeinterlaceMethod = VaapiDeinterlaceMethod.AUTO, disable_vpp=False):
         self.__logger.debug("Initializing vaapi decoder")
         self.__deinterlace_mode = deinterlace_mode
@@ -78,24 +81,23 @@ class GstVaapiDecoder(GstBaseDecoder):
 
     def __configure_decoder(self):
         self.__logger.debug("Configuring vaapi decoder")
-        
+
         self.__decoder.set_property('deinterlace', self.__deinterlace_mode)
         self.__decoder.set_property('disable-vpp', self.__disable_vpp)
         self.__logger.debug("vaapi decoder configured")
-    
+
     @property
     def tee(self):
         return self.__output_tee
-    
+
     @property
     def deinterlace_mode(self):
         return self.__deinterlace_mode
-    
+
     @property
     def decoder(self):
         return self.__decoder
-    
+
     @property
     def supported_encodings(self):
         return self.__supported_encodings
-    

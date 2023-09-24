@@ -44,13 +44,6 @@ class GstBaseSrc(GstBaseElement):
         self.__on_audio_available = on_audio_available
         self.__logger.debug("GstBaseSrc init completed")
 
-    @abstractmethod
-    def build_source(self):
-        """
-        Abstract method to build the source element.
-        """
-        pass
-
     @property
     def _on_video_available(self):
         """

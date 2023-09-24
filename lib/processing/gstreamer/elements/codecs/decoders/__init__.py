@@ -1,1 +1,2 @@
-from .video import GstAvDecoder
+from .video import *
+from .audio import *

@@ -14,7 +14,7 @@
 
 from lib import Logger
 from lib.processing.gstreamer.elements.codecs.decoders.GstBaseDecoder import GstBaseDecoder, VideoEncodings, GstDecoderClass
-from lib.processing.gstreamer.utils.gst_utils import make_gst_element
+from lib.processing.gstreamer.utils import gst_utils
 
 
 class CudaMemoryType(object):
@@ -25,9 +25,13 @@ class CudaMemoryType(object):
 
 class GstNvv4lDecoder(GstBaseDecoder):
 
-    __supported_encodings=[VideoEncodings.H264, VideoEncodings.H265, VideoEncodings.JPEG, VideoEncodings.MJPEG]
+    __supported_encodings = [
+        VideoEncodings.H264,
+        VideoEncodings.H265,
+        # VideoEncodings.JPEG,
+        # VideoEncodings.MJPEG
+    ]
     __decoder_class = GstDecoderClass.NVV4L2
-    __name = 'nvv4l2dec'
 
     __logger = None
     __decoder = None
@@ -35,36 +39,37 @@ class GstNvv4lDecoder(GstBaseDecoder):
     __memory_type = None
     __low_latency_mode = None
     __output_tee = None
-    
+    __gst_plugin_name = 'nvvideo4linux2'
+    __gst_feature_name = 'nvv4l2decoder'
+
     def __init__(self, pipeline=None, elem_id=0):
         super().__init__(
             pipeline=pipeline,
             elem_id=elem_id,
-            name=self.__name,
             decoder_class=self.__decoder_class,
             supported_encodings=self.__supported_encodings
         )
         self.__logger = Logger().get_logger("GstNvv4lDecoder")
-    
+
     def init_decoder(self, gpu_id=0, memory_type: CudaMemoryType = CudaMemoryType.DEVICE, low_latency_mode=True):
         self.__logger.debug("Initializing nvv4l decoder")
         self.__gpu_id = gpu_id
         self.__memory_type = memory_type
         self.__low_latency_mode = low_latency_mode
         self.__create_nvv4l_decoder()
-        self.__configure_decoder()
         self.__create_output_tee()
+        self.__configure_decoder()
         self.__logger.debug("nvv4l decoder initialized")
 
     def __create_nvv4l_decoder(self):
         self.__logger.debug("Creating nvv4l decoder")
-        self.__decoder = make_gst_element(
+        self.__decoder = gst_utils.make_gst_element(
             'nvv4l2decoder', 'nvv4l2dec-%u' % self.elem_id)
         self.__logger.debug("nvv4l decoder created")
 
     def __create_output_tee(self):
         self.__logger.debug("Creating output tee")
-        self.__output_tee = make_gst_element(
+        self.__output_tee = gst_utils.make_gst_element(
             'tee', 'nvv4l2dec-output-tee-%u' % self.elem_id)
         self.__logger.debug("Output tee created")
 
@@ -82,22 +87,36 @@ class GstNvv4lDecoder(GstBaseDecoder):
     @property
     def decoder(self):
         return self.__decoder
-    
+
     @property
     def gpu_id(self):
         return self.__gpu_id
-    
+
     @property
     def memory_type(self):
         return self.__memory_type
-    
+
     @property
     def low_latency_mode(self):
         return self.__low_latency_mode
-    
+
     @property
     def tee(self):
         return self.__output_tee
-    
+
     def on_video_available(self, callback):
-        self.__output_tee.connect('pad-added', callback)
+        # link elements
+        pass
+
+    def is_available(self, media_type):
+
+        if not gst_utils.is_plugin_available(self.__gst_plugin_name):
+            return False
+
+        if not gst_utils.is_feature_available(self.__gst_feature_name):
+            return False
+
+        if media_type not in self.__supported_encodings:
+            return False
+
+        return True

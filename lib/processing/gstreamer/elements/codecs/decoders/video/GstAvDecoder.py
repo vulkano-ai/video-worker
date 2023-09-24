@@ -3,29 +3,31 @@ from lib.processing.gstreamer.elements.codecs.decoders.GstBaseDecoder import Gst
 from lib.processing.gstreamer.utils.gst_utils import make_gst_element
 
 
-#TODO: Add support for more encodings
+# TODO: Add support for more encodings
 class GstAvDecoder(GstBaseDecoder):
-    
+
     __logger = None
     __parser = None
     __decoder = None
-    __supported_encodings = [ VideoEncodings.H264 ]
+    __supported_encodings = [
+        VideoEncodings.H264,
+        VideoEncodings.H265
+    ]
     __decoder_class = GstDecoderClass.AVDECODER
 
     def __init__(self, pipeline, elem_id=0):
         super().__init__(
-                pipeline=pipeline,
-                elem_id=elem_id,
-                name="AVDecoder",
-                decoder_class=self.__decoder_class,
-                supported_encodings=self.__supported_encodings
-            )
+            pipeline=pipeline,
+            elem_id=elem_id,
+            name="AVDecoder",
+            decoder_class=self.__decoder_class,
+            supported_encodings=self.__supported_encodings
+        )
         self.__logger = Logger().get_logger("AVDecoder")
 
         self.__logger.debug("AV Decoder element created")
 
-
-    def init_decoder(self):
+    def init_decoder(self, mdia_type):
         """
         Initializes the decoder.
         """
@@ -46,7 +48,7 @@ class GstAvDecoder(GstBaseDecoder):
 
         self.__logger.debug("H264 Parser created")
 
-    def __create_decoder(self):
+    def __create__h264_decoder(self):
         """
         Creates a H264 depayloader element and adds it to the pipeline.
         """
@@ -57,6 +59,18 @@ class GstAvDecoder(GstBaseDecoder):
         self.pipeline.add(self.__depay)
 
         self.__logger.debug("H264 Depay created")
+
+    def __create__h265_decoder(self):
+        """
+        Creates a H265 depayloader element and adds it to the pipeline.
+        """
+        self.__logger.debug("Creating H265 Depay")
+
+        self.__decoder = make_gst_element(
+            "avdec_h265", "avdec_h265-%u" % self._elem_id, "avdec_h265")
+        self.pipeline.add(self.__depay)
+
+        self.__logger.debug("H265 Depay created")
 
     @property
     def parser(self):

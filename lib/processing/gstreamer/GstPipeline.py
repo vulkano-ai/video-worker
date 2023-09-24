@@ -38,9 +38,7 @@ class GstPipeline(GstPipelineRunner):
 
     def _create_input_source(self, pipeline: Pipeline):
         inputs = pipeline.input
-        
-        
-        
+
         if pipeline.input.source.type == Pipeline.Input.Source.RTMP:
             self.__source = GstRtmpSrc(
                 pipeline=pipeline,
@@ -50,10 +48,15 @@ class GstPipeline(GstPipelineRunner):
             )
         pass
 
-    def _create_video_decoder(self, pipeline: Pipeline):
+    def _create_video_decoder(self, pad):
+        self.__logger.debug("Creating video decoder")
+        caps = pad.query_caps(None)
+        name = caps.to_string()
+        self.__logger.debug("Pad name: {}".format(name))
+        # DecoderFactory.create_decoder(pad)
         pass
 
-    def _create_audio_encoder(self, pipeline: Pipeline):
+    def _create_audio_encoder(self, pad):
         pass
 
     def _create_video_encoder(self, pipeline: Pipeline):
