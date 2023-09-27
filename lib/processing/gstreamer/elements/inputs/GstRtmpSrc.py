@@ -2,9 +2,33 @@ from lib import Logger
 from lib.processing.gstreamer.utils.gst_utils import make_gst_element
 from gi.repository import Gst
 from .GstBaseSrc import GstBaseSrc
+from lib.processing.gstreamer.exceptions.Exceptions import GstLinkException
 
 
 class GstRtmpSrc(GstBaseSrc):
+    """
+    A GStreamer element for receiving RTMP streams.
+
+    Args:
+        pipeline (Gst.Pipeline): The GStreamer pipeline to which this element belongs.
+        source_id (int): The ID of this source element.
+        on_video_available (function): A callback function to be called when video data is available.
+        on_audio_available (function): A callback function to be called when audio data is available.
+        location (str): The location of the RTMP stream.
+
+    Attributes:
+        __logger (Logger): The logger for this class.
+        __location (str): The location of the RTMP stream.
+        __rtmp_src (Gst.Element): The RTMP source element.
+        __flvdemux (Gst.Element): The FLV demuxer element.
+        __audio_tee (Gst.Element): The audio tee element.
+        __video_tee (Gst.Element): The video tee element.
+        __audio_pad (Gst.Pad): The audio pad.
+        __video_pad (Gst.Pad): The video pad.
+        __output_audio_pads (list): A list of audio output pads.
+        __output_video_pads (list): A list of video output pads.
+    """
+
     __logger = Logger().get_logger("GstRtmpSrc")
     __location = None
     __rtmp_src = None
@@ -16,7 +40,7 @@ class GstRtmpSrc(GstBaseSrc):
     __output_audio_pads = []
     __output_video_pads = []
 
-    def __init__(self, pipeline, source_id=0, on_video_available=None, on_audio_available=None, location=None):
+    def __init__(self, pipeline: Gst.Pipeline, source_id: int = 0, on_video_available: callable = None, on_audio_available: callable = None, location: str = None):
         super().__init__(
             pipeline=pipeline,
             elem_id=source_id,
@@ -29,12 +53,44 @@ class GstRtmpSrc(GstBaseSrc):
         self.__create_flvdemux()
 
     def __del__(self):
-        self.__logger.debug("Deleting rtmp src")
-        self.__rtmp_src.set_state(Gst.State.NULL)
-        self.__flvdemux.set_state(Gst.State.NULL)
-        self.__audio_tee.set_state(Gst.State.NULL)
-        self.__video_tee.set_state(Gst.State.NULL)
 
+        self.__logger.debug("Deleting rtmp src")
+        self.set_state(Gst.State.NULL)
+        self.unlink()
+        self.remove_from_pipeline()
+
+        for pad in self.__output_audio_pads:
+            Gst.Object.unref(pad)
+
+        for pad in self.__output_video_pads:
+            Gst.Object.unref(pad)
+
+        Gst.Object.unref(self.__rtmp_src)
+        Gst.Object.unref(self.__flvdemux)
+        Gst.Object.unref(self.__audio_tee)
+        Gst.Object.unref(self.__video_tee)
+        self.__logger.debug("Rtmp src deleted")
+
+    def set_state(self, state: Gst.State):
+        """
+        Sets the state of the GstRtmpSrc element and its related elements.
+
+        Args:
+            state (Gst.State): The state to set the elements to.
+        """
+        self.__rtmp_src.set_state(state)
+        self.__flvdemux.set_state(state)
+        self.__audio_tee.set_state(state)
+        self.__video_tee.set_state(state)
+
+    def unlink(self):
+        """
+        Unlinks the elements in the pipeline in the following order:
+        rtmp_src -> flvdemux -> audio_tee -> audio_pad
+        flvdemux -> video_tee -> video_pad
+        output_audio_pads -> audio_tee
+        output_video_pads -> video_tee
+        """
         self.__rtmp_src.unlink(self.__flvdemux)
         self.__flvdemux.unlink(self.__audio_tee)
         self.__flvdemux.unlink(self.__video_tee)
@@ -43,16 +99,19 @@ class GstRtmpSrc(GstBaseSrc):
 
         for pad in self.__output_audio_pads:
             pad.unlink(self.__audio_tee)
-            Gst.Object.unref(pad)
 
         for pad in self.__output_video_pads:
             pad.unlink(self.__video_tee)
-            Gst.Object.unref(pad)
 
-        Gst.Object.unref(self.__rtmp_src)
-        Gst.Object.unref(self.__flvdemux)
-        Gst.Object.unref(self.__audio_tee)
-        Gst.Object.unref(self.__video_tee)
+    def remove_from_pipeline(self):
+        """
+        Remove the elements from the pipeline in the following order:
+        rtmp_src -> flvdemux -> audio_tee, video_tee
+        """
+        self.pipeline.remove(self.__rtmp_src)
+        self.pipeline.remove(self.__flvdemux)
+        self.pipeline.remove(self.__audio_tee)
+        self.pipeline.remove(self.__video_tee)
 
     def __create_rtmp_src(self):
         self.__logger.debug("Creating rtmp src")
@@ -100,13 +159,17 @@ class GstRtmpSrc(GstBaseSrc):
         self.__logger.debug("Audio pad added")
         self.__audio_pad = pad
         self.__create_audio_tee()
-        self.__audio_pad.link(self.__audio_tee.get_static_pad("sink"))
+        if not self.__audio_pad.link(self.__audio_tee.get_static_pad("sink")):
+            self.__logger.error("Failed to link audio pad to tee")
+            raise GstLinkException("Failed to link audio pad to tee")
 
     def __on_video_pad_added(self, element, pad):
         self.__logger.debug("Video pad added")
         self.__video_pad = pad
         self.__create_video_tee()
-        self.__video_pad.link(self.__video_tee.get_static_pad("sink"))
+        if not self.__video_pad.link(self.__video_tee.get_static_pad("sink")):
+            self.__logger.error("Failed to link video pad to tee")
+            raise GstLinkException("Failed to link video pad to tee")
 
     def __on_pad_removed(self, element, pad):
         self.__logger.debug("Pad removed")
@@ -125,16 +188,23 @@ class GstRtmpSrc(GstBaseSrc):
         self.__logger.debug("No more pads")
         self.__logger.debug("Building source")
 
-        # getting the audio and video pads
+        # handle audio pad
         output_audio_pad = self.__audio_tee.get_request_pad("src_%u")
-        self.__output_audio_pads.append(output_audio_pad)
+        if output_audio_pad is not None:
+            self.__output_audio_pads.append(output_audio_pad)
+            self._on_audio_available(output_audio_pad)
+        else:
+            self.__logger.debug(
+                "No audio pad available for stream %u" % self._source_id)
 
+        # handle video pad
         output_video_pad = self.__video_tee.get_request_pad("src_%u")
-        self.__output_video_pads.append(output_video_pad)
-
-        # linking the pads to the callbacks
-        self._on_audio_available(output_audio_pad)
-        self._on_video_available(output_video_pad)
+        if output_video_pad is not None:
+            self.__output_video_pads.append(output_video_pad)
+            self._on_video_available(output_video_pad)
+        else:
+            self.__logger.debug(
+                "No video pad available for stream %u" % self._source_id)
 
     def get_video_request_pad(self):
         video_pad = self.__video_tee.get_request_pad("src_%u")

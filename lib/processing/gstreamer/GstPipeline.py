@@ -9,7 +9,7 @@ class GstPipeline(GstPipelineRunner):
     """description of class"""
     __logger = None
     __sources = []
-    
+
     def __init__(self):
         super().__init__(
             error_callback=self.__on_error,
@@ -28,10 +28,10 @@ class GstPipeline(GstPipelineRunner):
         pass
 
     def create_livestream_pipeline(self, pipeline: Pipeline):
-       
+
         self.__create_input_source(pipeline)
 
-        pass 
+        pass
 
     def __create_input_source(self, pipeline: Pipeline):
         inputs = pipeline.inputs
@@ -45,6 +45,9 @@ class GstPipeline(GstPipelineRunner):
                 on_video_available=self.__create_video_decoder,
                 on_audio_available=self.__create_audio_encoder
             )
+            if source is None:
+                raise Exception("Unsupported input type")
+
             self.__sources.append(source)
 
         self.__logger.debug(f"Created {len(self.__sources)} input sources")

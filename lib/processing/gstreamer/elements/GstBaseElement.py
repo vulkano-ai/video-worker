@@ -1,4 +1,5 @@
 from lib import Logger
+from gi.repository import Gst
 
 
 class GstBaseElement(object):
@@ -6,7 +7,7 @@ class GstBaseElement(object):
     Base class for GStreamer elements.
     """
     __logger = None
-    __pipeline = None
+    __pipeline: Gst.Pipeline = None
     __elem_id = None
     __gst_plugin_name = None
 

@@ -35,36 +35,42 @@ RUN git clone https://github.com/NVIDIA-AI-IOT/deepstream_python_apps.git
 RUN mkdir /opt/nvidia/deepstream/deepstream/sources/deepstream_python_apps/bindings/build
 WORKDIR /opt/nvidia/deepstream/deepstream/sources/deepstream_python_apps/bindings/build
 
-RUN curl -O -L https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/releases/download/v1.1.6/pyds-1.1.6-py3-none-linux_x86_64.whl && \
-    pip3 install ./pyds-1.1.6-py3-none-linux_x86_64.whl;
+
+ENV DS_PYTHON_VERION="1.1.6"
+RUN curl -O -L https://github.com/NVIDIA-AI-IOT/deepstream_python_apps/releases/download/v${DS_PYTHON_VERION}/pyds-${DS_PYTHON_VERION}-py3-none-linux_x86_64.whl && \
+    pip3 install ./pyds-${DS_PYTHON_VERION}-py3-none-linux_x86_64.whl;
 
 # nvdsinfer_custom_impl_Yolo
 WORKDIR /tmp
 
 RUN git clone https://github.com/marcoslucianops/DeepStream-Yolo.git
 
-RUN cd DeepStream-Yolo/nvdsinfer_custom_impl_Yolo/ && \
-    make -j$(nproc) && \
-    cp libnvdsinfer_custom_impl_Yolo.so /usr/local/lib/libnvdsinfer_yolo_v8.so  && \
+WORKDIR /tmp/DeepStream-Yolo/nvdsinfer_custom_impl_Yolo/
+ENV CUDA_VER 11.8
+
+RUN make -j$(nproc)
+RUN cp libnvdsinfer_custom_impl_Yolo.so /usr/local/lib/libnvdsinfer_yolo_v8.so  && \
     cd ../ && rm -rf DeepStream-Yolo
 
-COPY $MAXINE_VIDEO_SDK /tmp/video_fx.tar.gz
 
-RUN tar -xvf /tmp/video_fx.tar.gz -C /usr/local && \
-    rm -rf /tmp/video_fx.tar.gz
+# WORKDIR /tmp
+# COPY $MAXINE_VIDEO_SDK /tmp/video_fx.tar.gz
 
-RUN git clone https://github.com/voidmainvoid95/gst-nvmaxine.git
+# RUN tar -xvf /tmp/video_fx.tar.gz -C /usr/local && \
+#     rm -rf /tmp/video_fx.tar.gz
 
-RUN cd gst-nvmaxine && \
-    mkdir build && \
-    cd build && \
-    cmake .. && \
-    cmake --build . --config Release && \
-    cmake --install . --config Release && \
-    cd ../../ && \
-    rm -rf gst-nvmaxine
+# RUN git clone https://github.com/voidmainvoid95/gst-nvmaxine.git
 
-ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/local/VideoFX/lib"
+# RUN cd gst-nvmaxine && \
+#     mkdir build && \
+#     cd build && \
+#     cmake .. && \
+#     cmake --build . --config Release && \
+#     cmake --install . --config Release && \
+#     cd ../../ && \
+#     rm -rf gst-nvmaxine
+
+# ENV LD_LIBRARY_PATH "${LD_LIBRARY_PATH}:/usr/local/VideoFX/lib"
 
 COPY . /opt/app
 
