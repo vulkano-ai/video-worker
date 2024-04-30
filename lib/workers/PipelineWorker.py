@@ -1,6 +1,6 @@
 from threading import Event, Thread
 from lib import Logger, ConfigManager
-from inference.pipeline import pipeline_pb2 as Pipeline
+from inference.pipeline.pipeline_pb2 import Pipeline, StartPipelineRequest
 from queue import Queue
 from .GstWorker import GstProcess
 # process controller thread
@@ -24,15 +24,16 @@ class PipelineThread(Thread):
 
     def run(self):
         self.__logger.debug("Gst thread running")
-        self.__logger.info("Starting Gst Pipeline")
         while not self.__close_event.is_set():
             try:
                 if not self.__queue.empty():
-                    pipeline: Pipeline = self.__queue.get()
+                    self.__close_event.wait(self.__default_sleep * 10)
+                    pipeline_request: StartPipelineRequest = self.__queue.get()
                     self.__logger.debug(
-                        "Got job from queue: {}".format(pipeline))
+                        "Got job from queue: {}".format(pipeline_request))
                     # spawn new GstWorker process
-                    self.__add_worker(config=None)
+                    self.__add_worker(
+                        config=None, pipeline_request=pipeline_request)
                     self.__queue.task_done()
                 else:
                     self.__close_event.wait(self.__default_sleep)
@@ -42,20 +43,31 @@ class PipelineThread(Thread):
                 self.stop()
         self.__logger.debug("Gst thread closed")
 
-    def __add_worker(self, config):
-        new_worker = GstProcess(config)
-        new_worker.run()
+    def __add_worker(self, config, pipeline_request: StartPipelineRequest):
+        new_worker = GstProcess(config=config,
+                                default_sleep=self.__default_sleep,
+                                pipeline_request=pipeline_request)
+        new_worker.start()
+        self.__logger.debug(
+            "=================> New worker spawned: {}".format(new_worker))
         self.__active_workers.append(new_worker)
+        self.__logger.debug("Active workers:",
+                            active_workers=self.__active_workers)
 
     def __close_workers(self):
+        self.__logger.debug("Closing workers", workers=self.__active_workers)
         for worker in self.__active_workers:
+
             worker.stop()
             # we wait 10 seconds for gracefully shutdown
-            worker.join(10)
             if worker.is_alive():
+                worker.join(10)
+                self.__logger.warning(
+                    "Worker {} is still alive. Killing it.".format(worker))
                 worker.kill()
         self.__active_workers = []
 
     def stop(self):
+        self.__logger.info("Stopping pipeline thread")
         self.__close_workers()
         self.__close_event.set()

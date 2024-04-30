@@ -4,7 +4,7 @@ net-scale-factor = 0.0039215697906911373
 model-color-format = 0
 onnx-file = ../yolov8x.onnx
 labelfile-path = labels.txt
-network-mode = 0
+network-mode = 1
 num-detected-classes = 80
 interval = 0
 gie-unique-id = 1
@@ -16,7 +16,9 @@ symmetric-padding = 1
 parse-bbox-func-name = NvDsInferParseYolo
 custom-lib-path = /usr/local/lib/libnvdsinfer_yolo_v8.so
 engine-create-func-name = NvDsInferYoloCudaEngineGet
-batch-size = 2
+batch-size = 10
+model-engine-file = /opt/app/model_b10_gpu0_fp32.engine
+label-file-path = labels.txt
 
 [class-attrs-all]
 nms-iou-threshold = 0.45

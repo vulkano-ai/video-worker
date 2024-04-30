@@ -2,20 +2,26 @@ from lib import Logger, ConfigManager
 from inference import pipeline
 import logging
 from multiprocessing import Process
-from ..processing.gstreamer import GstPipelineRunner
+from ..processing.gstreamer.GstPipeline import GstPipeline
+from inference.pipeline.pipeline_pb2 import Pipeline, StartPipelineRequest
+import traceback
+
+import gi
+gi.require_version('Gst', '1.0')
 
 
 class GstProcess(Process):
 
-    def __init__(self, config=None, default_sleep=1):
+    def __init__(self, config=None, default_sleep=1, pipeline_request: StartPipelineRequest = None):
         super(GstProcess, self).__init__()
-        self.logger = Logger().get_logger("Gst thread")
+        self.__logger = Logger().get_logger("Gst thread")
         self.config_manager = ConfigManager()
 
-        self.logger.debug("GST thread init", config=config,
-                          default_sleep=default_sleep)
+        self.__logger.debug("GST thread init", config=config,
+                            default_sleep=default_sleep)
         self.__default_sleep = default_sleep
-        self.__runner = GstPipelineRunner(error_callback=self.__on_error_callback, eos_callback=self.__on_eos_callback)
+        self.__runner = GstPipeline()
+        self.__pipeline_request = pipeline_request
 
     def __on_error_callback(self):
         # TODO handle error or abort
@@ -28,18 +34,24 @@ class GstProcess(Process):
         pass
 
     def run(self):
-        self.logger.debug("Gst thread running")
-        self.logger.info("Starting Gst Pipeline")
+        self.__logger.debug("Gst thread running")
+        self.__logger.info("Starting Gst Pipeline")
         try:
             # The code will block here due to mainloop execution. We need a while loop only if we plan to reuse one
             # worker after a pipeline is completed.
+            self.__logger.debug("Creating livestream pipeline")
+            self.__runner.create_livestream_pipeline(
+                pipeline_request=self.__pipeline_request)
             self.__runner.run_blocking()
-
         except Exception as e:
-            self.logger.error("Gst error {}".format(e))
+            traceback.print_exc()
+            self.__logger.error("Gst error {}".format(e))
             self.stop()
 
-        self.logger.debug("Gst thread closed")
+        self.__logger.debug("Gst thread closed")
 
     def stop(self):
+        self.__logger.debug("Stopping Gst thread")
         self.__runner.stop_pipeline()
+
+        self.__logger.debug("Gst thread stopped")

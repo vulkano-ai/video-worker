@@ -3,10 +3,8 @@ from threading import Event
 from lib import Logger, ConfigManager, AmqpWorker, PipelineWorker
 from prometheus_client import start_http_server as start_prometheus_server
 import queue
-
-
-import queue
-from threading import Event
+import gi
+gi.require_version('Gst', '1.0')
 
 
 class LivestreamAiService:
@@ -66,7 +64,7 @@ class LivestreamAiService:
             queue=self.__job_queue)
         self.__pipeline_worker.start()
 
-        self.__amqp_worker = AmqpWorker.AmqpThread()
+        self.__amqp_worker = AmqpWorker.AmqpThread(queue=self.__job_queue)
         self.__amqp_worker.start()
         return
 
@@ -77,18 +75,23 @@ class LivestreamAiService:
         self.__logger.info("Stopping workers")
         # Amqp worker
         if self.__amqp_worker is not None and self.__amqp_worker.is_alive():
+            self.__logger.debug("Stopping amqp worker")
             self.__amqp_worker.stop()
             self.__amqp_worker.join()
             self.__logger.info("Amqp worker closed")
 
-        # Queue
-        self.__job_queue.join()
-
         # Pipeline worker
         if self.__pipeline_worker is not None and self.__pipeline_worker.is_alive():
+            self.__logger.debug("Stopping pipeline worker")
             self.__pipeline_worker.stop()
             self.__pipeline_worker.join()
             self.__logger.info("Pipeline worker closed")
+
+        # Queue
+        self.__logger.debug("Stopping queue")
+        self.__logger.debug("Queue size: {}".format(self.__job_queue.qsize()))
+        self.__job_queue.join()
+        self.__logger.info("Queue closed")
         return
 
     def quit(self):
@@ -97,9 +100,7 @@ class LivestreamAiService:
         """
         self.__logger.info("Closing...")
         self.__close_event.set()
-        self.stop_workers()
         self.__logger.info("All workers stopped")
-        # logger.info(self.__context__.destroy())
         self.__logger.info("All resources destroyed")
 
 

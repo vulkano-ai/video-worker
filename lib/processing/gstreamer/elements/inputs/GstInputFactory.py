@@ -1,11 +1,11 @@
-from common import Logger
-from . import GstRtmpSrc
+from lib.common.Logger import Logger
+from .GstRtmpSrc import GstRtmpSrc
 from inference.pipeline.pipeline_pb2 import Pipeline, PipelineInput, InputProtocol, OutputProtocol, InputProvider, OutputProvider
 from inference.providers.providers_pb2 import RtmpProviderConfig, HlsProviderConfig
 from gi.repository import Gst
 
 
-class GstInputFactoryFactory(object):
+class GstInputFactory(object):
     """
     A factory class for creating input sources for Gstreamer pipelines.
     """
@@ -14,9 +14,9 @@ class GstInputFactoryFactory(object):
 
     def __new__(cls):
         if cls._instance is None:
-            cls._instance = super(GstInputFactoryFactory, cls).__new__(cls)
-            cls._instance.__logger = Logger().get_logger("GstInputFactoryFactory")
-            cls._instance.__logger.debug("Creating GstInputFactoryFactory")
+            cls._instance = super(GstInputFactory, cls).__new__(cls)
+            cls._instance.__logger = Logger().get_logger("GstInputFactory")
+            cls._instance.__logger.debug("Creating GstInputFactory")
         return cls._instance
 
     def create_input_source(
@@ -67,7 +67,8 @@ class GstInputFactoryFactory(object):
         Returns:
             GstRtmpSrc: The input source.
         """
-        if input.protocol == InputProtocol.RTMP:
+        self._instance.__logger.debug("Handling input")
+        if input.protocol == InputProtocol.INPUT_RTMP:
             return self.__create_internal_rtmp_input(
                 input=input,
                 elem_id=elem_id,
@@ -92,7 +93,7 @@ class GstInputFactoryFactory(object):
             GstRtmpSrc: The input source.
         """
         self.__logger.debug("Creating internal rtmp source")
-        config = input.config.rtmpConfig
+        config = input.rtmpConfig
         assert config is not None, "Rtmp config must be set"
         assert config.uri is not None, "Rtmp uri must be set"
         rtmp_src = GstRtmpSrc(

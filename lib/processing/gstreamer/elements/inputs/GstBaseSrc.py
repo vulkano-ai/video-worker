@@ -2,6 +2,7 @@ from lib import Logger
 from lib.processing.gstreamer.utils.gst_utils import make_gst_element
 from abc import abstractmethod
 from lib.processing.gstreamer.elements.GstBaseElement import GstBaseElement
+from gi.repository import Gst
 
 
 class GstBaseSrc(GstBaseElement):
@@ -43,6 +44,48 @@ class GstBaseSrc(GstBaseElement):
         self.__on_video_available = on_video_available
         self.__on_audio_available = on_audio_available
         self.__logger.debug("GstBaseSrc init completed")
+
+    @abstractmethod
+    def create(self):
+        """
+        Abstract method to create the element.
+        """
+        super().create()
+
+    @abstractmethod
+    def add_to_pipeline(self):
+        """
+        Abstract method to add the element to the pipeline.
+        """
+        super().add_to_pipeline()
+
+    @abstractmethod
+    def link(self):
+        """
+        Abstract method to link the element to the pipeline.
+        """
+        super().link()
+
+    @abstractmethod
+    def unlink(self):
+        """
+        Abstract method to unlink the element from the pipeline.
+        """
+        super().unlink()
+
+    @abstractmethod
+    def remove_from_pipeline(self):
+        """
+        Abstract method to remove the element from the pipeline.
+        """
+        super().remove_from_pipeline()
+
+    @abstractmethod
+    def set_state(self, state: Gst.State):
+        """
+        Abstract method to set the state of the element.
+        """
+        super().set_state(state)
 
     @property
     def _on_video_available(self):

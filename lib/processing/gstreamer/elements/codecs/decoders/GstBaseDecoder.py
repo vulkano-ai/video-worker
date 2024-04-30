@@ -6,7 +6,7 @@ from abc import abstractmethod
 class GstDecoderClass(object):
     VAAPI = "vaapi"  # Video Acceleration API
     NVV4L2 = "nvv4l2decoder"  # NVIDIA Video 4 Linux 2
-    AVDECODER = "avdec"  # Libav decoder
+    AVDECODER = "avdec"  # Lib_av decoder
 
 
 class VideoEncodings(object):
@@ -15,7 +15,7 @@ class VideoEncodings(object):
     VP8 = "video/x-vp8"
     VP9 = "video/x-vp9"
     JPEG = "image/jpeg"
-    AV1 = "AV1"
+    AV1 = "video/x-av1"
 
     # MJPEG = "image/mjpeg"
     # MPEG2 = "MPEG2"
