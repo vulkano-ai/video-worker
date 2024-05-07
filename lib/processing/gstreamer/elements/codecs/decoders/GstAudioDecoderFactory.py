@@ -1,4 +1,4 @@
-from common import Logger
+from lib.common import Logger
 
 
 class GstAudioDecoderFactory(object):

@@ -60,21 +60,24 @@ def is_plugin_available(plugin_name):
         return True
 
 
-def is_feature_available(self, plugin_name, feature_name):
+def is_feature_available(plugin_name, feature_name):
     """
     Checks if the feature is available.
     """
+    __logger = Logger().get_logger("GstPipelineUtils")
+
     registry = Gst.Registry.get()
     plugin = registry.find_plugin(plugin_name)
     if plugin is None:
-        self.__logger.error("Plugin %s not found" % plugin_name)
+        __logger.error("Plugin %s not found" % plugin_name)
         return False
     else:
-        self.__logger.debug("Plugin %s found" % plugin_name)
-        feature = plugin.get_feature(feature_name)
-        if feature is None:
-            self.__logger.error("Feature %s not found" % feature_name)
-            return False
-        else:
-            self.__logger.debug("Feature %s found" % feature_name)
-            return True
+        return True
+        # __logger.debug("Plugin %s found" % plugin_name)
+        # feature = registry.find_feature(feature_name, )
+        # if feature is None:
+        #     __logger.error("Feature %s not found" % feature_name)
+        #     return False
+        # else:
+        #     __logger.debug("Feature %s found" % feature_name)
+        #     return True

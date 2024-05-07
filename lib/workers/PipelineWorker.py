@@ -27,7 +27,7 @@ class PipelineThread(Thread):
         while not self.__close_event.is_set():
             try:
                 if not self.__queue.empty():
-                    self.__close_event.wait(self.__default_sleep * 10)
+                    self.__close_event.wait(self.__default_sleep * 5)
                     pipeline_request: StartPipelineRequest = self.__queue.get()
                     self.__logger.debug(
                         "Got job from queue: {}".format(pipeline_request))
